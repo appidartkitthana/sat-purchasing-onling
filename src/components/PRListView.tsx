@@ -16,6 +16,7 @@ import {
   Printer
 } from 'lucide-react';
 import { PR, PRStatus, User, UserRole } from '../types.js';
+import { isSameDepartment } from '../lib/apiClient.js';
 
 interface PRListViewProps {
   prs: PR[];
@@ -41,18 +42,28 @@ export default function PRListView({ prs = [], currentUser, onNavigate, onCancel
     // 2. Department Manager sees PRs within their department (unless in HR/GA dept)
     // 3. Assistant Manager can view all PRs in their department PLUS all APPROVED / PO_CREATED PRs from everyone
     // 4. Executive sees PRs that are past department manager approval state (PENDING_EXECUTIVE, APPROVED, PO_CREATED, REJECTED, CANCELLED)
-    if (currentUser.role === UserRole.EMPLOYEE && currentUser.departmentId !== 'DEP004') {
-      result = result.filter(pr => pr.requestorId === currentUser.id || pr.requestorEmail === currentUser.email);
-    } else if (currentUser.role === UserRole.DEPARTMENT_MANAGER) {
-      result = result.filter(pr => pr.departmentId === currentUser.departmentId || pr.status === PRStatus.PENDING_DEPT_MGR);
+    // Apply role-based filtering:
+    const isBenjawan = currentUser.employeeId === 'SAT0214' || currentUser.name.includes('Benjawan') || currentUser.thaiName?.includes('เบ็ญจวรรณ');
+
+    if (isBenjawan || currentUser.role === UserRole.DEPARTMENT_MANAGER) {
+      result = result.filter(pr => 
+        isSameDepartment(pr.departmentId, currentUser.departmentId) || 
+        isSameDepartment(pr.departmentId, 'DEP004') ||
+        pr.status === PRStatus.PENDING_DEPT_MGR ||
+        pr.requestorId === currentUser.id ||
+        pr.requestorEmail === currentUser.email
+      );
     } else if (currentUser.role === UserRole.ASSISTANT_MANAGER) {
       result = result.filter(pr => 
-        pr.departmentId === currentUser.departmentId ||
+        isSameDepartment(pr.departmentId, currentUser.departmentId) ||
         pr.requestorId === currentUser.id ||
+        pr.requestorEmail === currentUser.email ||
         pr.status === PRStatus.PENDING_DEPT_MGR ||
         pr.status === PRStatus.APPROVED ||
         pr.status === PRStatus.PO_CREATED
       );
+    } else if (currentUser.role === UserRole.EMPLOYEE && !isSameDepartment(currentUser.departmentId, 'DEP004')) {
+      result = result.filter(pr => pr.requestorId === currentUser.id || pr.requestorEmail === currentUser.email);
     } else if (currentUser.role === UserRole.EXECUTIVE) {
       result = result.filter(pr => pr.status !== PRStatus.DRAFT && pr.status !== PRStatus.PENDING_DEPT_MGR);
     }

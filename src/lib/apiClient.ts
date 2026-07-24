@@ -20,42 +20,82 @@ import {
 // Supabase Row Mappers (Client Side)
 // ============================================================================
 
+export function normalizeDepartmentId(deptId?: string): string {
+  if (!deptId) return 'DEP004';
+  const id = deptId.trim().toUpperCase();
+  if (id === 'DEP001' || id === 'MGMT' || id === 'MANAGEMENT' || id.includes('EXEC')) return 'DEP001';
+  if (id === 'DEP002' || id === 'PCL' || id === 'PC&L') return 'DEP002';
+  if (id === 'DEP003' || id === 'PUR' || id === 'SALES' || id.includes('PURCHASING') || id.includes('PE')) return 'DEP003';
+  if (id === 'DEP004' || id === 'HRGA' || id === 'HR/GA' || id === 'HR' || id === 'ADMINISTRATION' || id.includes('GENERAL AFFAIRS')) return 'DEP004';
+  if (id === 'DEP005' || id === 'PROD' || id === 'PRODUCTION') return 'DEP005';
+  if (id === 'DEP006' || id === 'QAQC' || id === 'QA/QC' || id === 'QA' || id === 'QC') return 'DEP006';
+  if (id === 'DEP007' || id === 'ACT' || id === 'ACCOUNTING') return 'DEP007';
+  return id;
+}
+
+export function isSameDepartment(dept1?: string, dept2?: string): boolean {
+  if (!dept1 || !dept2) return false;
+  return normalizeDepartmentId(dept1) === normalizeDepartmentId(dept2);
+}
+
 export function resolveDepartmentName(deptId?: string, rawDeptName?: string): string {
   if (rawDeptName && rawDeptName !== 'Unknown Department' && rawDeptName !== 'undefined' && rawDeptName.trim() !== '') {
     return rawDeptName;
   }
-  const id = (deptId || '').trim();
-  if (id === 'DEP001' || id === 'MGMT') return 'Management';
-  if (id === 'DEP002' || id === 'PC&L' || id === 'PCL') return 'PC&L (Production Control & Logistics)';
-  if (id === 'DEP003' || id === 'PUR' || id === 'SALES') return 'Sales / Purchasing / PE';
-  if (id === 'DEP004' || id === 'HRGA' || id === 'HR/GA' || id === 'HR') return 'HR / General Affairs';
-  if (id === 'DEP005' || id === 'PROD') return 'Production';
-  if (id === 'DEP006' || id === 'QAQC' || id === 'QA/QC') return 'QA / QC';
-  if (id === 'DEP007' || id === 'ACT') return 'Accounting';
+  const id = normalizeDepartmentId(deptId);
+  if (id === 'DEP001') return 'Management';
+  if (id === 'DEP002') return 'PC&L (Production Control & Logistics)';
+  if (id === 'DEP003') return 'Sales / Purchasing / PE';
+  if (id === 'DEP004') return 'HR / General Affairs';
+  if (id === 'DEP005') return 'Production';
+  if (id === 'DEP006') return 'QA / QC';
+  if (id === 'DEP007') return 'Accounting';
 
   return 'HR / General Affairs';
 }
 
 export function mapUserFromDb(row: any): User {
   const empId = String(row.employee_id || row.employeeId || row.emp_id || row.id || '').trim();
-  let rawRole = String(row.role || 'EMPLOYEE').toUpperCase();
-  if (rawRole === 'ADMINISTRATOR' || rawRole === 'ADMIN' || rawRole === 'MASTER ADMIN' || rawRole === 'SYSTEM ADMIN' || row.role === 'Administrator') {
-    rawRole = UserRole.ADMINISTRATOR;
+  const rawRole = String(row.role || 'EMPLOYEE').toUpperCase();
+  const title = String(row.title || row.position || '').trim();
+  const titleUpper = title.toUpperCase();
+  const thaiName = String(row.thai_name || row.user_name_th || row.thaiName || '');
+  const name = String(row.name || row.user_name_en || row.english_name || '');
+
+  let role = UserRole.EMPLOYEE;
+
+  // Specific user check for SAT0214 / Benjawan
+  if (empId.toUpperCase() === 'SAT0214' || name.toLowerCase().includes('benjawan') || thaiName.includes('เบ็ญจวรรณ')) {
+    role = UserRole.DEPARTMENT_MANAGER;
+  } else if (rawRole === 'ADMINISTRATOR' || rawRole === 'ADMIN' || rawRole === 'MASTER ADMIN' || rawRole === 'SYSTEM ADMIN' || titleUpper.includes('ADMIN')) {
+    role = UserRole.ADMINISTRATOR;
+  } else if (rawRole === 'EXECUTIVE' || titleUpper.includes('EXECUTIVE') || titleUpper.includes('DIRECTOR') || titleUpper.includes('VICE PRESIDENT') || titleUpper.includes('PRESIDENT')) {
+    role = UserRole.EXECUTIVE;
+  } else if (rawRole === 'PURCHASING_MANAGER' || (titleUpper.includes('PURCHASING') && titleUpper.includes('MANAGER'))) {
+    role = UserRole.PURCHASING_MANAGER;
+  } else if (rawRole === 'DEPARTMENT_MANAGER' || titleUpper.includes('DEPARTMENT MANAGER') || titleUpper.includes('SECTION MANAGER') || (titleUpper.includes('MANAGER') && !titleUpper.includes('PURCHASING'))) {
+    role = UserRole.DEPARTMENT_MANAGER;
+  } else if (rawRole === 'ASSISTANT_MANAGER' || titleUpper.includes('ASSISTANT MANAGER')) {
+    role = UserRole.ASSISTANT_MANAGER;
+  } else if (rawRole === 'PURCHASING' || titleUpper.includes('PURCHASING')) {
+    role = UserRole.PURCHASING;
+  } else if (Object.values(UserRole).includes(rawRole as UserRole)) {
+    role = rawRole as UserRole;
   }
-  const role = Object.values(UserRole).includes(rawRole as UserRole) ? (rawRole as UserRole) : UserRole.EMPLOYEE;
-  const deptId = String(row.department_id || row.departmentId || row.dept_id || 'DEP004');
+
+  const deptId = normalizeDepartmentId(String(row.department_id || row.departmentId || row.dept_id || 'DEP004'));
   const deptName = resolveDepartmentName(deptId, row.department_name || row.departmentName);
 
   return {
     id: String(row.id || empId),
     employeeId: empId,
-    name: String(row.name || row.user_name_en || row.english_name || 'Employee User'),
-    thaiName: row.thai_name || row.user_name_th || row.thaiName || '',
+    name: name || 'Employee User',
+    thaiName: thaiName,
     email: String(row.email || (empId ? `${empId.toLowerCase()}@sat.co.th` : 'user@sat.co.th')),
     role: role,
     departmentId: deptId,
     departmentName: deptName,
-    title: String(row.title || row.position || row.role || 'Employee'),
+    title: title || 'Employee',
     signatureUrl: row.signature_url || row.signatureUrl,
     isActive: row.is_active !== undefined ? Boolean(row.is_active) : true,
     branch: String(row.branch || 'Chonburi Branch (Head Office)'),

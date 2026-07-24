@@ -41,6 +41,7 @@ import {
   Cell
 } from 'recharts';
 import { PR, PO, Department, User, UserRole, PRStatus, POStatus, WorkflowRule } from '../types.js';
+import { isSameDepartment } from '../lib/apiClient.js';
 
 const CustomBudgetTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -114,18 +115,27 @@ export default function DashboardView({
   // Filter purchase requisitions based on Role-Based Access Control (RBAC)
   const prs = React.useMemo(() => {
     if (!currentUser) return rawPRs;
-    if (currentUser.role === UserRole.EMPLOYEE) {
-      return rawPRs.filter(p => p.requestorId === currentUser.id || p.requestorEmail === currentUser.email);
-    } else if (currentUser.role === UserRole.DEPARTMENT_MANAGER) {
-      return rawPRs.filter(p => p.departmentId === currentUser.departmentId || p.status === PRStatus.PENDING_DEPT_MGR);
+    const isBenjawan = currentUser.employeeId === 'SAT0214' || currentUser.name.includes('Benjawan') || currentUser.thaiName?.includes('เบ็ญจวรรณ');
+
+    if (isBenjawan || currentUser.role === UserRole.DEPARTMENT_MANAGER) {
+      return rawPRs.filter(p => 
+        isSameDepartment(p.departmentId, currentUser.departmentId) || 
+        isSameDepartment(p.departmentId, 'DEP004') ||
+        p.status === PRStatus.PENDING_DEPT_MGR ||
+        p.requestorId === currentUser.id ||
+        p.requestorEmail === currentUser.email
+      );
     } else if (currentUser.role === UserRole.ASSISTANT_MANAGER) {
       return rawPRs.filter(p => 
-        p.departmentId === currentUser.departmentId ||
+        isSameDepartment(p.departmentId, currentUser.departmentId) ||
         p.requestorId === currentUser.id ||
+        p.requestorEmail === currentUser.email ||
         p.status === PRStatus.PENDING_DEPT_MGR ||
         p.status === PRStatus.APPROVED ||
         p.status === PRStatus.PO_CREATED
       );
+    } else if (currentUser.role === UserRole.EMPLOYEE && !isSameDepartment(currentUser.departmentId, 'DEP004')) {
+      return rawPRs.filter(p => p.requestorId === currentUser.id || p.requestorEmail === currentUser.email);
     } else if (currentUser.role === UserRole.EXECUTIVE) {
       return rawPRs.filter(p => p.status !== PRStatus.DRAFT && p.status !== PRStatus.PENDING_DEPT_MGR);
     }
