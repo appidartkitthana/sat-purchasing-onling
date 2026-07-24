@@ -253,12 +253,19 @@ export default function PRFormView({ currentUser, vendors, departments, onSave, 
       return;
     }
 
+    const vendorObj = (localVendors || []).find(v => v && (v.id === selectedVendorId || v.code === selectedVendorId));
+
     if (status === 'PENDING_DEPT_MGR') {
       setShowSignaturePad(true);
     } else {
       onSave({
         requestorId: currentUser.id,
         suggestedVendorId: selectedVendorId,
+        vendorName: vendorObj?.name || '',
+        vendorAddress: vendorObj?.address || '-',
+        vendorPhone: vendorObj?.phone || '-',
+        vendorFax: vendorObj?.fax || '',
+        vendorTaxId: vendorObj?.taxId || '-',
         items,
         purchaseObjective,
         status,
@@ -271,9 +278,15 @@ export default function PRFormView({ currentUser, vendors, departments, onSave, 
 
   const handleSaveSignature = (signatureDataUrl: string, companyStampDataUrl?: string, geoCoordinates?: string) => {
     setShowSignaturePad(false);
+    const vendorObj = (localVendors || []).find(v => v && (v.id === selectedVendorId || v.code === selectedVendorId));
     onSave({
       requestorId: currentUser.id,
       suggestedVendorId: selectedVendorId,
+      vendorName: vendorObj?.name || '',
+      vendorAddress: vendorObj?.address || '-',
+      vendorPhone: vendorObj?.phone || '-',
+      vendorFax: vendorObj?.fax || '',
+      vendorTaxId: vendorObj?.taxId || '-',
       items,
       purchaseObjective,
       status: 'PENDING_DEPT_MGR',

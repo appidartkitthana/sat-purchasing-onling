@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { PR, User, UserRole, PRStatus, PO, Attachment } from '../types.js';
 import { deletePrApi, updatePrStepSignatureApi } from '../lib/apiClient.js';
+import { MASTER_VENDORS } from '../vendorsMasterList.js';
 import SignaturePad from './SignaturePad.js';
 import DocumentPreviewModal, { openFileInNewTab } from './DocumentPreviewModal.js';
 import ProcessPackagePrint from './ProcessPackagePrint.js';
@@ -49,6 +50,32 @@ export default function PRDetailsView({ pr, currentUser, onApprove, onGeneratePO
   const [comment, setComment] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [previewFile, setPreviewFile] = useState<{ fileName: string, fileUrl: string } | null>(null);
+
+  const vendorInfo = React.useMemo(() => {
+    if (pr.vendorName && pr.vendorName.trim() !== '' && pr.vendorName !== 'General Vendor' && pr.vendorName !== '-') {
+      return {
+        name: pr.vendorName,
+        address: pr.vendorAddress && pr.vendorAddress !== '-' ? pr.vendorAddress : '',
+        phone: pr.vendorPhone && pr.vendorPhone !== '-' ? pr.vendorPhone : '',
+        fax: pr.vendorFax || ''
+      };
+    }
+    const matched = MASTER_VENDORS.find(v => v.code === pr.suggestedVendorId || v.name === pr.suggestedVendorId || (v as any).id === pr.suggestedVendorId);
+    if (matched) {
+      return {
+        name: matched.name,
+        address: matched.address || '-',
+        phone: matched.phone || '-',
+        fax: matched.fax || ''
+      };
+    }
+    return {
+      name: pr.vendorName || 'Not Specified',
+      address: pr.vendorAddress || '-',
+      phone: pr.vendorPhone || '-',
+      fax: pr.vendorFax || ''
+    };
+  }, [pr]);
 
   const handleStepSignatureSaved = async (signatureData: string, companyStampData?: string, geoCoordinates?: string) => {
     if (!activeStepSignatureTarget) return;
@@ -737,19 +764,19 @@ export default function PRDetailsView({ pr, currentUser, onApprove, onGeneratePO
           <div className="mt-4 space-y-1.5 max-w-2xl">
             <div className="flex items-center">
               <span className="w-28 font-bold text-black shrink-0">Suggested Vendor :</span>
-              <span className="border-b border-slate-300 flex-1 px-1 font-bold">{pr.vendorName}</span>
+              <span className="border-b border-slate-300 flex-1 px-1 font-bold">{vendorInfo.name}</span>
             </div>
             <div className="flex items-center">
               <span className="w-28 font-bold text-black shrink-0">Address :</span>
-              <span className="border-b border-slate-300 flex-1 px-1 truncate">{pr.vendorAddress}</span>
+              <span className="border-b border-slate-300 flex-1 px-1 truncate">{vendorInfo.address}</span>
             </div>
             <div className="flex items-center">
               <span className="w-28 font-bold text-black shrink-0">Telephone :</span>
-              <span className="border-b border-slate-300 flex-1 px-1 font-mono">{pr.vendorPhone}</span>
+              <span className="border-b border-slate-300 flex-1 px-1 font-mono">{vendorInfo.phone}</span>
             </div>
             <div className="flex items-center">
               <span className="w-28 font-bold text-black shrink-0">Fax :</span>
-              <span className="border-b border-slate-300 flex-1 px-1 font-mono">{pr.vendorFax || ' '}</span>
+              <span className="border-b border-slate-300 flex-1 px-1 font-mono">{vendorInfo.fax || ' '}</span>
             </div>
             <p className="text-[8px] text-slate-600 italic font-semibold mt-1">
               Please give complete descriptions where applicable. Remit all Surplus Property Forms to Purchasing.

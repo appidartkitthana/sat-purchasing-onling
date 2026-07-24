@@ -542,12 +542,46 @@ export async function fetchAllDataApi() {
     }))
   ]);
 
+  const enrichedPrs = prs.map(pr => {
+    if (!pr.vendorName || pr.vendorName.trim() === '' || pr.vendorName === 'General Vendor' || pr.vendorName === '-') {
+      const v = vendors.find(item => item && (item.id === pr.suggestedVendorId || item.code === pr.suggestedVendorId || item.name === pr.vendorName));
+      if (v) {
+        return {
+          ...pr,
+          vendorName: v.name || pr.vendorName,
+          vendorAddress: (v.address && v.address !== '-') ? v.address : pr.vendorAddress,
+          vendorPhone: (v.phone && v.phone !== '-') ? v.phone : pr.vendorPhone,
+          vendorFax: v.fax || pr.vendorFax,
+          vendorTaxId: (v.taxId && v.taxId !== '-') ? v.taxId : pr.vendorTaxId
+        };
+      }
+    }
+    return pr;
+  });
+
+  const enrichedPos = pos.map(po => {
+    if (!po.vendorName || po.vendorName.trim() === '' || po.vendorName === 'General Vendor' || po.vendorName === '-') {
+      const v = vendors.find(item => item && (item.id === po.vendorId || item.code === po.vendorId || item.name === po.vendorName));
+      if (v) {
+        return {
+          ...po,
+          vendorName: v.name || po.vendorName,
+          vendorAddress: (v.address && v.address !== '-') ? v.address : po.vendorAddress,
+          vendorPhone: (v.phone && v.phone !== '-') ? v.phone : po.vendorPhone,
+          vendorFax: v.fax || po.vendorFax,
+          vendorTaxId: (v.taxId && v.taxId !== '-') ? v.taxId : po.vendorTaxId
+        };
+      }
+    }
+    return po;
+  });
+
   return {
     users,
     departments,
     vendors,
-    prs,
-    pos,
+    prs: enrichedPrs,
+    pos: enrichedPos,
     workflowRules,
     auditLogs,
     notifications,

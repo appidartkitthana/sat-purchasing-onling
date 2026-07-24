@@ -1721,12 +1721,12 @@ app.post('/api/pr', (req, res) => {
       requestorEmail: requestor.email,
       departmentId: requestor.departmentId,
       departmentName: deptName,
-      suggestedVendorId: vendor.id,
-      vendorName: vendor.name,
-      vendorAddress: vendor.address || '-',
-      vendorPhone: vendor.phone || '-',
-      vendorFax: vendor.fax || '',
-      vendorTaxId: vendor.taxId || '-',
+      suggestedVendorId: req.body.suggestedVendorId || vendor.id,
+      vendorName: req.body.vendorName || vendor.name,
+      vendorAddress: req.body.vendorAddress || vendor.address || '-',
+      vendorPhone: req.body.vendorPhone || vendor.phone || '-',
+      vendorFax: req.body.vendorFax || vendor.fax || '',
+      vendorTaxId: req.body.vendorTaxId || vendor.taxId || '-',
       items: safeItems.map((item: any, idx: number) => {
         const qty = parseFloat(item?.qty) || 1;
         const unitPrice = parseFloat(item?.unitPrice) || 0;

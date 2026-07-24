@@ -160,8 +160,8 @@
       "name": "Miss Benjawan Tidchat",
       "thaiName": "นางสาวเบ็ญจวรรณ ทิดชาติ",
       "email": "SAT0214@sat.co.th",
-      "role": "DEPARTMENT_MANAGER",
-      "departmentId": "DEP004",
+      "role": "HR/GA",
+      "departmentId": "Administration",
       "title": "Assistant Manager",
       "isActive": true
     },
@@ -369,8 +369,8 @@
       "name": "Mr.Kitthana Khoommoll",
       "thaiName": "นายกิตติ์ธนา คำมูล",
       "email": "SAT0417@sat.co.th",
-      "role": "EMPLOYEE",
-      "departmentId": "DEP004",
+      "role": "HR/GA",
+      "departmentId": "Administration",
       "title": "IT Officer",
       "isActive": true
     },
@@ -2623,11 +2623,11 @@
       "departmentId": "DEP004",
       "departmentName": "HR / General Affairs",
       "suggestedVendorId": "182",
-      "vendorName": "",
-      "vendorAddress": "-",
-      "vendorPhone": "-",
+      "vendorName": "SR Resource Plus Co., Ltd. (HQ)",
+      "vendorAddress": "99/138 Soi Krungthep Kreetha 39, Kweang Tubchang, Khet Saphansung, Bangkok 10250",
+      "vendorPhone": "02-368-3181",
       "vendorFax": "",
-      "vendorTaxId": "-",
+      "vendorTaxId": "0105559163987",
       "items": [
         {
           "id": "PRI-1784883406511-0",
